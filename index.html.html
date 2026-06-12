@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국사 대모험 — 시간 여행 퀘스트</title>
+<style>
+  :root{
+    --ink:#1f2438;        /* 먹색 */
+    --hanji:#fbf5e9;      /* 한지 */
+    --hanji-deep:#f3e9d2;
+    --dancheong-red:#d94f3d;
+    --cobalt:#2e5eaa;
+    --gold:#f2b135;
+    --jade:#3e8e6e;
+    --night:#1b2a4a;
+    --night-deep:#12203a;
+    --line:#d9c9a8;
+    --shadow:0 6px 0 rgba(31,36,56,.12);
+    --radius:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+    background:var(--night-deep);
+    color:var(--ink);
+    display:flex;justify-content:center;
+    min-height:100dvh;
+  }
+  #app{
+    width:100%;max-width:460px;min-height:100dvh;
+    background:var(--hanji);
+    position:relative;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  /* 단청 띠 */
+  .dancheong{
+    height:10px;flex:none;
+    background:repeating-linear-gradient(90deg,
+      var(--dancheong-red) 0 22px, var(--gold) 22px 44px,
+      var(--jade) 44px 66px, var(--cobalt) 66px 88px);
+  }
+  .screen{flex:1;display:none;flex-direction:column;overflow-y:auto;}
+  .screen.active{display:flex;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  button:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px;}
+
+  /* ---------- 타이틀 ---------- */
+  #title-screen{
+    background:linear-gradient(180deg,var(--night) 0%,var(--night-deep) 55%,var(--night) 100%);
+    color:var(--hanji);align-items:center;justify-content:center;
+    text-align:center;padding:32px 24px;gap:8px;position:relative;
+  }
+  .stars-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  .stars-bg span{position:absolute;color:var(--gold);opacity:.7;animation:twinkle 2.6s infinite ease-in-out;}
+  @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.9);}50%{opacity:.9;transform:scale(1.1);}}
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+  .title-emblem{font-size:64px;line-height:1;margin-bottom:10px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35));}
+  .title-eyebrow{
+    letter-spacing:.4em;font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;
+  }
+  h1.game-title{
+    font-size:44px;font-weight:900;letter-spacing:.02em;line-height:1.15;
+    text-shadow:0 4px 0 rgba(0,0,0,.4);
+  }
+  h1.game-title .accent{color:var(--gold);}
+  .title-sub{margin-top:12px;font-size:15px;line-height:1.7;color:#cdd6ea;}
+  .title-sub b{color:var(--hanji);}
+  .btn-primary{
+    margin-top:28px;background:var(--dancheong-red);color:#fff;
+    font-size:20px;font-weight:800;padding:16px 44px;border-radius:999px;
+    box-shadow:0 6px 0 #a33324;transition:transform .08s,box-shadow .08s;
+  }
+  .btn-primary:active{transform:translateY(4px);box-shadow:0 2px 0 #a33324;}
+  .title-howto{
+    margin-top:26px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);
+    border-radius:var(--radius);padding:14px 18px;font-size:13px;line-height:1.9;color:#cdd6ea;
+    text-align:left;max-width:320px;
+  }
+  .title-howto b{color:var(--gold);}
+
+  /* ---------- 공통 헤더 ---------- */
+  .hud{
+    flex:none;background:var(--night);color:var(--hanji);
+    padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .hud .hud-title{font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;}
+  .hud .pill{
+    background:rgba(255,255,255,.12);border-radius:999px;padding:5px 12px;
+    font-size:13px;font-weight:700;display:flex;align-items:center;gap:5px;
+  }
+  .hud .pill .num{color:var(--gold);}
+  .hud-btn{
+    background:rgba(255,255,255,.12);color:var(--hanji);border-radius:999px;
+    padding:6px 12px;font-size:13px;font-weight:700;
+  }
+
+  /* ---------- 지도 ---------- */
+  #map-screen .map-scroll{flex:1;overflow-y:auto;padding:22px 18px 40px;}
+  .map-intro{
+    background:var(--hanji-deep);border:2px dashed var(--line);border-radius:var(--radius);
+    padding:12px 16px;font-size:13.5px;line-height:1.7;margin-bottom:22px;color:#5d5340;
+  }
+  .era-path{position:relative;display:flex;flex-direction:column;gap:18px;}
+  .era-path::before{
+    content:"";position:absolute;left:50%;top:30px;bottom:30px;width:4px;
+    transform:translateX(-50%);
+    background:repeating-linear-gradient(180deg,var(--line) 0 10px,transparent 10px 20px);
+  }
+  .era-node{
+    position:relative;width:78%;display:flex;align-items:center;gap:14px;
+    background:#fff;border:3px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;box-shadow:var(--shadow);text-align:left;
+    transition:transform .08s;
+  }
+  .era-node:nth-child(odd){align-self:flex-start;}
+  .era-node:nth-child(even){align-self:flex-end;}
+  .era-node:not(:disabled):active{transform:translateY(3px);}
+  .era-node .era-icon{
+    flex:none;width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:28px;background:var(--hanji-deep);
+  }
+  .era-node .era-info{flex:1;min-width:0;}
+  .era-node .era-order{font-size:11px;font-weight:800;color:var(--cobalt);letter-spacing:.08em;}
+  .era-node .era-name{font-size:16.5px;font-weight:900;line-height:1.25;}
+  .era-node .era-years{font-size:11.5px;color:#8a7d62;margin-top:2px;}
+  .era-node .era-stars{font-size:13px;margin-top:3px;letter-spacing:2px;color:var(--gold);}
+  .era-node.locked{filter:grayscale(1);opacity:.55;}
+  .era-node.locked .era-lock{font-size:20px;}
+  .era-node.current{border-color:var(--dancheong-red);}
+  .era-node.current::after{
+    content:"도전!";position:absolute;top:-12px;right:-6px;
+    background:var(--dancheong-red);color:#fff;font-size:11px;font-weight:800;
+    padding:4px 10px;border-radius:999px;box-shadow:0 3px 0 #a33324;
+  }
+  .era-node.cleared{border-color:var(--jade);}
+
+  /* ---------- 퀴즈 ---------- */
+  #quiz-screen .quiz-body{flex:1;overflow-y:auto;padding:20px 18px 32px;display:flex;flex-direction:column;}
+  .quiz-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .hearts{font-size:20px;letter-spacing:3px;}
+  .q-dots{display:flex;gap:6px;}
+  .q-dots .dot{width:10px;height:10px;border-radius:50%;background:var(--line);}
+  .q-dots .dot.done{background:var(--jade);}
+  .q-dots .dot.now{background:var(--dancheong-red);transform:scale(1.25);}
+  .combo-badge{
+    align-self:flex-end;background:var(--gold);color:var(--ink);font-weight:900;font-size:12px;
+    border-radius:999px;padding:4px 12px;margin-bottom:8px;visibility:hidden;
+  }
+  .combo-badge.show{visibility:visible;animation:pop .25s ease;}
+  @keyframes pop{0%{transform:scale(.6);}70%{transform:scale(1.12);}100%{transform:scale(1);}}
+  .story-card{
+    background:#fff;border:3px solid var(--line);border-radius:var(--radius);
+    padding:22px 20px;box-shadow:var(--shadow);text-align:center;margin:auto 0;
+  }
+  .story-card .story-icon{font-size:54px;}
+  .story-card h2{font-size:22px;font-weight:900;margin:10px 0 4px;}
+  .story-card .story-years{font-size:12.5px;color:#8a7d62;margin-bottom:12px;}
+  .story-card p{font-size:15px;line-height:1.85;text-align:left;color:#46412f;}
+  .story-card .btn-primary{margin-top:20px;font-size:17px;padding:13px 36px;}
+  .question-card{
+    background:#fff;border:3px solid var(--line);border-radius:var(--radius);
+    padding:20px 18px;box-shadow:var(--shadow);
+  }
+  .question-card .q-label{font-size:12px;font-weight:800;color:var(--cobalt);letter-spacing:.1em;margin-bottom:6px;}
+  .question-card .q-text{font-size:18.5px;font-weight:800;line-height:1.55;}
+  .choices{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .choice{
+    background:var(--hanji-deep);border:2.5px solid var(--line);border-radius:14px;
+    padding:13px 14px;font-size:15.5px;font-weight:700;text-align:left;
+    display:flex;align-items:center;gap:10px;transition:transform .07s;
+  }
+  .choice .ch-key{
+    flex:none;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:900;color:#8a7d62;
+  }
+  .choice:not(:disabled):active{transform:scale(.985);}
+  .choice.correct{background:#e3f3ec;border-color:var(--jade);}
+  .choice.correct .ch-key{background:var(--jade);border-color:var(--jade);color:#fff;}
+  .choice.wrong{background:#fbe5e1;border-color:var(--dancheong-red);}
+  .choice.wrong .ch-key{background:var(--dancheong-red);border-color:var(--dancheong-red);color:#fff;}
+  .choice.dim{opacity:.45;}
+  .feedback{
+    margin-top:14px;border-radius:14px;padding:14px 15px;font-size:14px;line-height:1.7;display:none;
+  }
+  .feedback.show{display:block;animation:pop .2s ease;}
+  .feedback.good{background:#e3f3ec;border:2px solid var(--jade);}
+  .feedback.bad{background:#fbe5e1;border:2px solid var(--dancheong-red);}
+  .feedback .fb-title{font-weight:900;font-size:15px;margin-bottom:4px;}
+  .btn-next{
+    margin-top:14px;width:100%;background:var(--cobalt);color:#fff;font-size:17px;font-weight:800;
+    padding:14px;border-radius:14px;box-shadow:0 5px 0 #1f4076;display:none;
+    transition:transform .08s,box-shadow .08s;
+  }
+  .btn-next.show{display:block;}
+  .btn-next:active{transform:translateY(3px);box-shadow:0 2px 0 #1f4076;}
+
+  /* ---------- 결과 ---------- */
+  #result-screen{align-items:center;justify-content:center;padding:28px 22px;text-align:center;gap:0;}
+  .result-card{
+    background:#fff;border:3px solid var(--line);border-radius:22px;box-shadow:var(--shadow);
+    padding:30px 24px;width:100%;max-width:360px;
+  }
+  .result-card .big-icon{font-size:60px;}
+  .result-card h2{font-size:24px;font-weight:900;margin:10px 0 4px;}
+  .result-stars{font-size:34px;letter-spacing:6px;margin:8px 0;}
+  .result-stars .off{opacity:.22;}
+  .result-msg{font-size:14.5px;line-height:1.75;color:#5d5340;}
+  .card-earned{
+    margin:18px auto 0;width:200px;border-radius:16px;overflow:hidden;
+    border:3px solid var(--gold);box-shadow:0 8px 0 rgba(242,177,53,.3);
+    background:linear-gradient(160deg,#fff8e8,#ffeec2);animation:cardIn .5s ease;
+  }
+  @keyframes cardIn{0%{transform:rotateY(80deg) scale(.7);opacity:0;}100%{transform:none;opacity:1;}}
+  .card-earned .card-top{background:var(--gold);color:var(--ink);font-size:11px;font-weight:900;padding:5px;letter-spacing:.15em;}
+  .card-earned .card-face{font-size:58px;padding:18px 0 8px;}
+  .card-earned .card-name{font-weight:900;font-size:17px;padding-bottom:4px;}
+  .card-earned .card-desc{font-size:11.5px;color:#7a6a40;padding:0 12px 14px;line-height:1.5;}
+  .result-actions{display:flex;gap:10px;margin-top:22px;justify-content:center;flex-wrap:wrap;}
+  .btn-ghost{
+    background:#fff;border:2.5px solid var(--line);border-radius:999px;
+    padding:13px 26px;font-size:15px;font-weight:800;color:var(--ink);
+  }
+
+  /* ---------- 도감 ---------- */
+  .modal{
+    position:absolute;inset:0;background:rgba(18,32,58,.75);display:none;
+    align-items:flex-end;justify-content:center;z-index:30;
+  }
+  .modal.open{display:flex;}
+  .modal-sheet{
+    background:var(--hanji);width:100%;max-height:86%;border-radius:24px 24px 0 0;
+    padding:20px 18px 30px;overflow-y:auto;
+  }
+  .modal-sheet h3{font-size:19px;font-weight:900;display:flex;justify-content:space-between;align-items:center;}
+  .modal-close{background:var(--hanji-deep);border-radius:50%;width:34px;height:34px;font-size:16px;font-weight:900;}
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px;}
+  .mini-card{
+    border-radius:14px;border:2.5px solid var(--gold);background:linear-gradient(160deg,#fff8e8,#ffeec2);
+    text-align:center;padding:14px 8px;
+  }
+  .mini-card .mc-face{font-size:40px;}
+  .mini-card .mc-name{font-weight:900;font-size:14px;margin-top:4px;}
+  .mini-card .mc-era{font-size:11px;color:#7a6a40;}
+  .mini-card.locked{border-color:var(--line);background:var(--hanji-deep);color:#9a8e72;}
+  .mini-card.locked .mc-face{filter:grayscale(1);opacity:.4;}
+
+  /* ---------- 최종 인증서 ---------- */
+  #final-screen{align-items:center;justify-content:center;padding:26px 20px;text-align:center;
+    background:linear-gradient(180deg,var(--night),var(--night-deep));}
+  .cert{
+    background:var(--hanji);border:6px double var(--gold);border-radius:14px;
+    width:100%;max-width:370px;padding:30px 22px;position:relative;
+  }
+  .cert .cert-seal{
+    position:absolute;top:14px;right:14px;width:54px;height:54px;border-radius:50%;
+    background:var(--dancheong-red);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:900;line-height:1.2;transform:rotate(12deg);
+    box-shadow:0 3px 0 #a33324;
+  }
+  .cert h2{font-size:24px;font-weight:900;letter-spacing:.2em;margin-bottom:4px;}
+  .cert .cert-sub{font-size:12px;color:#8a7d62;letter-spacing:.25em;margin-bottom:18px;}
+  .cert p{font-size:14.5px;line-height:2;color:#46412f;}
+  .cert .cert-stats{
+    display:flex;justify-content:center;gap:22px;margin:18px 0;
+  }
+  .cert .stat .stat-num{font-size:26px;font-weight:900;color:var(--dancheong-red);}
+  .cert .stat .stat-label{font-size:11.5px;color:#8a7d62;}
+  .cert .cert-date{margin-top:8px;font-size:12px;color:#8a7d62;}
+  #final-screen .result-actions{margin-top:24px;}
+  #final-screen .btn-ghost{background:transparent;color:var(--hanji);border-color:rgba(255,255,255,.4);}
+
+  .toast{
+    position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;
+    font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="dancheong"></div>
+
+  <!-- 타이틀 -->
+  <section id="title-screen" class="screen active">
+    <div class="stars-bg" id="stars-bg"></div>
+    <div class="title-emblem">🏯</div>
+    <div class="title-eyebrow">시간 여행 퀘스트</div>
+    <h1 class="game-title">한국사<br><span class="accent">대모험</span></h1>
+    <p class="title-sub">고조선부터 오늘의 대한민국까지!<br><b>8개의 시대 관문</b>을 통과하는 역사 탐험을 떠나요.</p>
+    <button class="btn-primary" onclick="goMap()">모험 시작하기 ▶</button>
+    <div class="title-howto">
+      <b>🗺️ 노는 방법</b><br>
+      ① 시대 관문을 순서대로 열어요<br>
+      ② 퀴즈를 맞히면 점수와 ⭐ 별을 받아요<br>
+      ③ 관문을 깨면 <b>역사 영웅 카드</b>를 모아요<br>
+      ④ 8개 시대를 모두 정복하면 <b>역사왕 인증서</b>!
+    </div>
+  </section>
+
+  <!-- 지도 -->
+  <section id="map-screen" class="screen">
+    <div class="hud">
+      <div class="hud-title">🗺️ 시간 여행 지도</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="pill">🪙 <span class="num" id="hud-score">0</span></div>
+        <button class="hud-btn" onclick="openDex()">📚 카드 도감</button>
+      </div>
+    </div>
+    <div class="map-scroll">
+      <div class="map-intro">두루마리 길을 따라 위에서 아래로 내려가며 시대를 정복해요. 잠긴 관문은 앞 시대를 먼저 깨야 열려요! 🔑</div>
+      <div class="era-path" id="era-path"></div>
+    </div>
+  </section>
+
+  <!-- 퀴즈 -->
+  <section id="quiz-screen" class="screen">
+    <div class="hud">
+      <div class="hud-title" id="quiz-era-title">시대</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="pill">🪙 <span class="num" id="quiz-score">0</span></div>
+        <button class="hud-btn" onclick="confirmExit()">지도로</button>
+      </div>
+    </div>
+    <div class="quiz-body" id="quiz-body"></div>
+  </section>
+
+  <!-- 결과 -->
+  <section id="result-screen" class="screen"></section>
+
+  <!-- 최종 인증서 -->
+  <section id="final-screen" class="screen"></section>
+
+  <!-- 도감 모달 -->
+  <div class="modal" id="dex-modal" onclick="if(event.target===this)closeDex()">
+    <div class="modal-sheet">
+      <h3>📚 역사 영웅 카드 도감 <button class="modal-close" onclick="closeDex()">✕</button></h3>
+      <div class="card-grid" id="dex-grid"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ================= 데이터 ================= */
+const ERAS = [
+ {
+  id:0, icon:"🐻", name:"고조선", years:"기원전 2333년 ~ 기원전 108년",
+  story:"아주 먼 옛날, 하늘에서 내려온 환웅과 곰에서 사람이 된 웅녀 사이에서 단군왕검이 태어났어요. 단군왕검은 우리 역사 최초의 나라, 고조선을 세웠답니다. 청동기와 고인돌의 시대로 떠나 볼까요?",
+  card:{face:"🐻", name:"단군왕검", desc:"우리나라 최초의 나라 고조선을 세운 건국 시조"},
+  questions:[
+   {q:"우리나라 '최초의 나라' 고조선을 세운 인물은 누구일까요?", c:["단군왕검","주몽","박혁거세","왕건"], a:0,
+    why:"단군왕검은 기원전 2333년에 고조선을 세웠다고 전해져요. 10월 3일 개천절이 바로 이 날을 기념하는 날이에요!"},
+   {q:"곰이 사람이 되기 위해 어두운 동굴에서 먹으며 버틴 음식은?", c:["쑥과 마늘","인삼과 꿀","쌀과 보리","사과와 배"], a:0,
+    why:"곰은 쑥과 마늘만 먹으며 100일을 견디기로 했고, 21일 만에 사람(웅녀)이 되었다는 이야기가 전해져요."},
+   {q:"고조선의 법인 '8조법'에서, 남을 다치게 한 사람은 어떻게 해야 했을까요?", c:["곡식으로 갚는다","춤을 춰서 사과한다","나라에서 쫓겨난다","아무 벌도 받지 않는다"], a:0,
+    why:"8조법에는 '남을 다치게 한 자는 곡식으로 갚는다'는 내용이 있어요. 법이 있었다는 건 그만큼 발전된 사회였다는 뜻!"},
+   {q:"고조선을 대표하는, 악기 비파를 닮은 청동 검의 이름은?", c:["비파형 동검","가야금형 동검","피리형 동검","장구형 동검"], a:0,
+    why:"비파형 동검은 악기 비파처럼 가운데가 볼록한 모양이에요. 이 검이 발견된 지역으로 고조선의 영역을 짐작할 수 있어요."},
+   {q:"힘센 지배자의 무덤으로 알려진, 커다란 돌로 만든 유적은?", c:["고인돌","첨성대","피라미드","석굴암"], a:0,
+    why:"고인돌은 수십 톤짜리 돌을 옮겨 만들었어요. 많은 사람을 움직일 수 있는 강한 지배자가 있었다는 증거랍니다."}
+  ]
+ },
+ {
+  id:1, icon:"⚔️", name:"삼국 시대", years:"기원전 57년 ~ 668년",
+  story:"고구려·백제·신라 세 나라가 한반도에서 서로 힘을 겨루던 시대예요! 넓은 만주 벌판을 달린 고구려, 바다 건너 문화를 전한 백제, 마지막에 웃은 신라까지. 세 나라의 불꽃 튀는 경쟁 속으로!",
+  card:{face:"🐎", name:"광개토대왕", desc:"고구려의 영토를 만주까지 크게 넓힌 정복왕"},
+  questions:[
+   {q:"고구려의 전성기를 이끌며 영토를 만주까지 크게 넓힌 왕은?", c:["광개토대왕","세종대왕","근초고왕","문무왕"], a:0,
+    why:"광개토대왕은 이름 그대로 '땅(토)을 넓게(광개) 연 왕'이에요. 아들 장수왕이 비석(광개토대왕릉비)을 세워 업적을 기록했죠."},
+   {q:"알에서 태어났다고 전해지며 고구려를 세운 인물은?", c:["주몽","온조","단군왕검","대조영"], a:0,
+    why:"활을 잘 쏘는 주몽은 알에서 태어났다는 신비한 이야기와 함께 고구려를 세웠어요. 동생처럼 따르던 온조는 남쪽으로 가 백제를 세웠고요!"},
+   {q:"백제의 전성기를 이끌고 바다 건너까지 힘을 떨친 왕은?", c:["근초고왕","진흥왕","장수왕","법흥왕"], a:0,
+    why:"근초고왕 때 백제는 가장 강했어요. 백제는 일본에 한자, 불교 등 앞선 문화를 전해 준 '문화 선생님' 나라이기도 했답니다."},
+   {q:"신라 선덕여왕 때 만든, 별을 관측하던 건축물은?", c:["첨성대","불국사","수원화성","경복궁"], a:0,
+    why:"첨성대는 동양에서 가장 오래된 천문대로 알려져 있어요. 농사에 중요한 하늘의 움직임을 살폈답니다."},
+   {q:"한강을 차지하고 삼국 중 마지막 전성기를 누린 나라는?", c:["신라","고구려","백제","가야"], a:0,
+    why:"진흥왕 때 신라는 한강을 차지했어요. 한강은 사람·물자가 모이고 중국과 교류하기 좋은 '최고의 명당'이었거든요!"}
+  ]
+ },
+ {
+  id:2, icon:"🦅", name:"남북국 시대", years:"676년 ~ 926년",
+  story:"신라가 삼국을 통일하고, 북쪽에서는 고구려를 이은 발해가 우뚝 섰어요. 남쪽의 통일신라, 북쪽의 발해! 두 나라가 함께한 시대라 '남북국 시대'라고 불러요. 찬란한 불교 문화도 꽃피웠답니다.",
+  card:{face:"🦅", name:"대조영", desc:"고구려를 계승한 나라, 발해를 세운 건국왕"},
+  questions:[
+   {q:"676년, 삼국 통일을 완성한 신라의 왕은?", c:["문무왕","무열왕","진흥왕","선덕여왕"], a:0,
+    why:"아버지 무열왕이 시작한 통일을 아들 문무왕이 완성했어요. 죽어서도 바다의 용이 되어 나라를 지키겠다고 했대요!"},
+   {q:"고구려 유민을 이끌고 발해를 세운 인물은?", c:["대조영","장보고","왕건","계백"], a:0,
+    why:"대조영은 고구려가 망한 뒤 유민들을 이끌고 698년 발해를 세웠어요. 발해는 스스로 고구려를 이은 나라라고 밝혔답니다."},
+   {q:"토함산에 만든, 통일신라를 대표하는 인공 석굴 유산은?", c:["석굴암","고인돌","무령왕릉","해인사"], a:0,
+    why:"석굴암은 돌을 쌓아 만든 인공 석굴 사원으로, 가운데 본존불이 유명해요. 불국사와 함께 유네스코 세계유산이에요!"},
+   {q:"'바다의 왕' 장보고가 완도에 세운 해상 무역 기지는?", c:["청해진","벽란도","부산포","제물포"], a:0,
+    why:"장보고는 청해진을 세워 해적을 소탕하고 바닷길 무역을 주름잡았어요. 그래서 '해상왕'이라고 불려요."},
+   {q:"크게 번성한 발해를 두고 주변 나라가 부른 별명은?", c:["해동성국","천하제일국","동방예의지국","불야성국"], a:0,
+    why:"'바다 동쪽의 번성한 나라'라는 뜻의 해동성국! 발해가 얼마나 잘나가는 나라였는지 보여 주는 별명이에요."}
+  ]
+ },
+ {
+  id:3, icon:"🏺", name:"고려 시대", years:"918년 ~ 1392년",
+  story:"왕건이 후삼국을 통일하고 세운 나라, 고려! 'KOREA'라는 이름이 바로 여기서 나왔어요. 비취색 고려청자, 세계 최초 금속활자, 그리고 거란·몽골에 맞선 끈질긴 저항까지. 자랑거리가 한가득!",
+  card:{face:"🛡️", name:"강감찬", desc:"귀주 대첩에서 거란군을 크게 물리친 명장"},
+  questions:[
+   {q:"후삼국을 통일하고 고려를 세운 인물은?", c:["왕건","궁예","견훤","이성계"], a:0,
+    why:"왕건은 918년 고려를 세우고 후삼국을 통일했어요. 고려라는 이름이 서양에 전해져 'KOREA'가 되었답니다!"},
+   {q:"거란의 대군을 귀주에서 크게 물리친 고려의 장군은?", c:["강감찬","이순신","김유신","을지문덕"], a:0,
+    why:"1019년 강감찬 장군은 귀주에서 거란군을 거의 전멸시켰어요. 이를 '귀주 대첩'이라고 해요."},
+   {q:"부처의 힘으로 몽골의 침입을 이겨 내려고 만든 것은?", c:["팔만대장경","훈민정음","측우기","첨성대"], a:0,
+    why:"8만 장이 넘는 목판에 불경을 새긴 팔만대장경! 지금도 해인사 장경판전에 잘 보관되어 있는 세계기록유산이에요."},
+   {q:"세계에서 가장 오래된 금속활자 인쇄본의 이름은?", c:["직지심체요절","조선왕조실록","동의보감","삼국유사"], a:0,
+    why:"직지심체요절은 구텐베르크의 인쇄보다 약 70년이나 앞선 금속활자본이에요. 고려의 인쇄 기술, 세계 최고!"},
+   {q:"고려를 대표하는, 신비한 비취색 도자기는?", c:["고려청자","조선백자","옹기","유리잔"], a:0,
+    why:"고려청자의 맑은 비취색과 상감 기법(무늬를 파서 채워 넣기)은 중국 사람들도 천하제일이라 감탄했대요!"}
+  ]
+ },
+ {
+  id:4, icon:"📖", name:"조선 전기", years:"1392년 ~ 1592년",
+  story:"이성계가 세운 새 나라, 조선! 수도를 한양으로 옮기고 유교의 나라를 만들었어요. 그리고 우리 역사 최고의 발명, 훈민정음이 탄생해요. 백성을 사랑한 세종대왕의 시대로 가 볼까요?",
+  card:{face:"📖", name:"세종대왕", desc:"백성을 위해 훈민정음(한글)을 만든 성군"},
+  questions:[
+   {q:"고려를 무너뜨리고 조선을 세운 인물은?", c:["이성계","왕건","정약용","이순신"], a:0,
+    why:"위화도에서 군대를 돌린 이성계는 1392년 조선을 세웠어요. 새 수도는 한양(지금의 서울)으로 정했죠!"},
+   {q:"백성들이 쉽게 글을 읽고 쓰도록 훈민정음을 만든 왕은?", c:["세종대왕","태조","정조","영조"], a:0,
+    why:"'백성을 가르치는 바른 소리'라는 뜻의 훈민정음! 세종대왕은 글을 몰라 억울한 백성들을 위해 한글을 만들었어요."},
+   {q:"노비 출신이지만 뛰어난 솜씨로 발명품을 만든 조선의 과학자는?", c:["장영실","허준","김정호","신사임당"], a:0,
+    why:"장영실은 자격루(물시계), 앙부일구(해시계) 등을 만들었어요. 신분보다 실력을 알아본 세종대왕과 환상의 짝꿍!"},
+   {q:"조선의 수도로, 지금의 서울인 곳은?", c:["한양","개경","평양","경주"], a:0,
+    why:"한양은 한강이 흐르고 산으로 둘러싸인 명당이었어요. 경복궁, 숭례문이 이때 세워졌답니다."},
+   {q:"비가 내린 양을 재기 위해 만든 과학 기구는?", c:["측우기","해시계","물레방아","돋보기"], a:0,
+    why:"측우기는 세계에서 가장 앞선 강우량 측정 기구 중 하나예요. 농사의 나라 조선에 꼭 필요한 발명품이었죠!"}
+  ]
+ },
+ {
+  id:5, icon:"🐢", name:"조선 후기", years:"1592년 ~ 1876년",
+  story:"임진왜란이라는 큰 전쟁이 조선을 덮쳤어요! 하지만 바다에는 이순신 장군과 거북선이 있었죠. 전쟁의 아픔을 딛고 영조·정조 시대에는 문화가 다시 활짝 피어납니다.",
+  card:{face:"🐢", name:"이순신", desc:"거북선과 함께 바다를 지킨 불패의 명장"},
+  questions:[
+   {q:"임진왜란 때 거북선과 함께 일본 수군을 물리친 장군은?", c:["이순신","권율","강감찬","김좌진"], a:0,
+    why:"이순신 장군은 모든 해전에서 승리한 불패의 명장! 등에 철갑을 두른 거북선은 적에게 공포 그 자체였어요."},
+   {q:"이순신 장군이 단 13척의 배로 133척을 물리친 기적의 전투는?", c:["명량 대첩","귀주 대첩","살수 대첩","행주 대첩"], a:0,
+    why:"'신에게는 아직 12척의 배가 남아 있습니다.' 울돌목의 빠른 물살을 이용해 13척으로 대승을 거둔 전투가 명량 대첩이에요."},
+   {q:"정조가 새로운 꿈을 담아 수원에 지은 성은?", c:["수원화성","남한산성","경복궁","몽촌토성"], a:0,
+    why:"정조는 정약용이 만든 거중기 같은 새 기술로 수원화성을 지었어요. 유네스코 세계유산으로 등재된 멋진 성이랍니다!"},
+   {q:"씨름, 서당 풍경 등 백성들의 생활을 그린 김홍도의 그림을 무엇이라 할까요?", c:["풍속화","초상화","산수화","추상화"], a:0,
+    why:"풍속화는 당시 사람들의 일상을 생생하게 담은 그림이에요. 김홍도의 '씨름'을 보면 조선 사람들의 표정까지 보여요!"},
+   {q:"허준이 평생을 바쳐 완성한 의학 책의 이름은?", c:["동의보감","삼국사기","목민심서","난중일기"], a:0,
+    why:"동의보감은 병의 치료법을 총정리한 의학 백과사전이에요. 유네스코 세계기록유산이 된 자랑스러운 책!"}
+  ]
+ },
+ {
+  id:6, icon:"🕊️", name:"근대·일제강점기", years:"1876년 ~ 1945년",
+  story:"나라의 문이 열리고 격동의 시대가 시작됐어요. 일제에 나라를 빼앗기는 아픔도 겪었지만, 우리 민족은 포기하지 않았습니다. 1919년 3월 1일, 전국에 울려 퍼진 '대한 독립 만세!'를 기억해요.",
+  card:{face:"🕊️", name:"유관순", desc:"3·1 운동의 선두에 선 열일곱 살 독립운동가"},
+  questions:[
+   {q:"1919년 3월 1일, 전국에서 '대한 독립 만세'를 외친 운동은?", c:["3·1 운동","새마을 운동","물산장려운동","동학농민운동"], a:0,
+    why:"3·1 운동은 남녀노소 모두가 평화적으로 참여한 거대한 독립운동이에요. 전 세계에 우리의 독립 의지를 알렸답니다."},
+   {q:"열일곱 살 나이로 만세 운동에 앞장선 독립운동가는?", c:["유관순","신사임당","허난설헌","명성황후"], a:0,
+    why:"유관순은 고향 아우내 장터에서 만세 운동을 이끌다 붙잡혔지만, 감옥에서도 끝까지 만세를 외쳤어요."},
+   {q:"하얼빈역에서 이토 히로부미를 처단한 독립운동가는?", c:["안중근","김구","윤봉길","안창호"], a:0,
+    why:"안중근 의사는 1909년 하얼빈에서 침략의 우두머리 이토 히로부미를 처단하고 '대한 독립 만세'를 외쳤어요."},
+   {q:"3·1 운동 이후 중국 상하이에 세워진 우리의 정부는?", c:["대한민국 임시정부","조선 총독부","통일 정부","한성 정부"], a:0,
+    why:"대한민국 임시정부는 독립운동의 중심이 되었어요. '대한민국'이라는 나라 이름도 이때 정해졌답니다!"},
+   {q:"우리나라가 일제로부터 해방되어 광복을 맞이한 해는?", c:["1945년","1919년","1950년","1960년"], a:0,
+    why:"1945년 8월 15일, 드디어 광복! '빛(光)을 되찾았다(復)'는 뜻이에요. 매년 8월 15일이 광복절이죠."}
+  ]
+ },
+ {
+  id:7, icon:"🚀", name:"현대 대한민국", years:"1945년 ~ 현재",
+  story:"폐허에서 시작해 세계가 놀란 나라로! 전쟁의 아픔을 이겨 내고 '한강의 기적'을 이룬 대한민국. 올림픽과 월드컵을 열고, 이제는 K-문화로 세계를 사로잡고 있어요. 이 역사의 다음 주인공은 바로 너!",
+  card:{face:"🌟", name:"미래의 나", desc:"대한민국 역사를 이어 갈 다음 주인공!"},
+  questions:[
+   {q:"대한민국 정부가 수립된 해는 언제일까요?", c:["1948년","1945년","1950년","1988년"], a:0,
+    why:"1948년 8월 15일, 대한민국 정부가 수립되었어요. 광복 3년 뒤 우리 손으로 세운 정부랍니다."},
+   {q:"1950년 6월 25일에 일어난 같은 민족끼리의 전쟁은?", c:["6·25 전쟁","임진왜란","병자호란","청일전쟁"], a:0,
+    why:"6·25 전쟁은 3년이나 이어진 아픈 전쟁이에요. 아직도 남과 북이 나뉘어 있어 평화 통일이 우리의 숙제로 남아 있죠."},
+   {q:"우리나라의 빠른 경제 성장을 부르는 말은? '한강의 ○○'", c:["기적","보물","바람","불꽃"], a:0,
+    why:"전쟁으로 폐허가 된 나라가 수십 년 만에 경제 강국이 된 것을 '한강의 기적'이라고 불러요. 온 국민이 함께 이룬 성과!"},
+   {q:"1988년 서울에서 열린 세계적인 스포츠 대회는?", c:["올림픽","월드컵","아시안게임","엑스포"], a:0,
+    why:"1988 서울 올림픽은 발전한 대한민국을 전 세계에 보여 준 큰 무대였어요. 마스코트는 호돌이!"},
+   {q:"2002년 우리나라에서 열려 '4강 신화'를 쓴 대회는?", c:["한일 월드컵","동계 올림픽","세계 육상 대회","세계 박람회"], a:0,
+    why:"2002 한일 월드컵에서 우리 대표팀은 4강 신화를 썼어요. 온 거리가 붉은 응원 물결로 가득했답니다. 대~한민국!"}
+  ]
+ }
+];
+
+/* ================= 상태 ================= */
+const state = {
+  score:0,
+  cleared:{},          // eraId -> stars(1~3)
+  cards:{},            // eraId -> true
+  current:null,        // { eraId, qIndex, hearts, combo, mistakes, shuffled }
+};
+
+/* ================= 유틸 ================= */
+const $ = s => document.querySelector(s);
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function shuffleChoices(q){
+  const idx=[0,1,2,3].sort(()=>Math.random()-.5);
+  return { text:q.q, choices:idx.map(i=>q.c[i]), answer:idx.indexOf(q.a), why:q.why };
+}
+function updateScore(){ $('#hud-score').textContent=state.score; const qs=$('#quiz-score'); if(qs) qs.textContent=state.score; }
+
+/* ================= 타이틀 별 ================= */
+(function(){
+  const bg=$('#stars-bg');
+  for(let i=0;i<22;i++){
+    const s=document.createElement('span');
+    s.textContent=Math.random()>.5?'✦':'✧';
+    s.style.left=Math.random()*100+'%';
+    s.style.top=Math.random()*100+'%';
+    s.style.fontSize=(8+Math.random()*12)+'px';
+    s.style.animationDelay=(Math.random()*2.5)+'s';
+    bg.appendChild(s);
+  }
+})();
+
+/* ================= 지도 ================= */
+function goMap(){
+  renderMap(); updateScore(); show('#map-screen');
+}
+function renderMap(){
+  const path=$('#era-path'); path.innerHTML='';
+  const nextId = ERAS.findIndex(e=>!state.cleared[e.id]);
+  ERAS.forEach(era=>{
+    const cleared = !!state.cleared[era.id];
+    const unlocked = era.id===0 || !!state.cleared[era.id-1] || cleared;
+    const btn=document.createElement('button');
+    btn.className='era-node'+(cleared?' cleared':unlocked?(era.id===nextId?' current':''):' locked');
+    btn.disabled=!unlocked;
+    const stars = cleared ? '★'.repeat(state.cleared[era.id])+'<span style="opacity:.25">'+'★'.repeat(3-state.cleared[era.id])+'</span>' : '';
+    btn.innerHTML=`
+      <div class="era-icon">${era.icon}</div>
+      <div class="era-info">
+        <div class="era-order">${era.id+1}번째 관문</div>
+        <div class="era-name">${era.name}</div>
+        <div class="era-years">${era.years}</div>
+        ${cleared?`<div class="era-stars">${stars}</div>`:''}
+      </div>
+      ${unlocked?'':'<div class="era-lock">🔒</div>'}`;
+    if(unlocked) btn.onclick=()=>startEra(era.id);
+    path.appendChild(btn);
+  });
+}
+
+/* ================= 퀴즈 진행 ================= */
+function startEra(eraId){
+  const era=ERAS[eraId];
+  state.current={ eraId, qIndex:-1, hearts:3, combo:0, mistakes:0,
+    shuffled: era.questions.map(shuffleChoices) };
+  $('#quiz-era-title').textContent = era.icon+' '+era.name;
+  updateScore();
+  renderStory(era);
+  show('#quiz-screen');
+}
+function renderStory(era){
+  $('#quiz-body').innerHTML=`
+    <div class="story-card">
+      <div class="story-icon">${era.icon}</div>
+      <h2>${era.name}</h2>
+      <div class="story-years">${era.years}</div>
+      <p>${era.story}</p>
+      <button class="btn-primary" onclick="nextQuestion()">퀴즈 도전! 🔥</button>
+    </div>`;
+}
+function nextQuestion(){
+  const cur=state.current; cur.qIndex++;
+  const era=ERAS[cur.eraId];
+  if(cur.qIndex>=cur.shuffled.length){ finishEra(); return; }
+  const q=cur.shuffled[cur.qIndex];
+  const dots = cur.shuffled.map((_,i)=>`<div class="dot ${i<cur.qIndex?'done':i===cur.qIndex?'now':''}"></div>`).join('');
+  $('#quiz-body').innerHTML=`
+    <div class="quiz-meta">
+      <div class="hearts">${'❤️'.repeat(cur.hearts)}${'🤍'.repeat(3-cur.hearts)}</div>
+      <div class="q-dots">${dots}</div>
+    </div>
+    <div class="combo-badge ${cur.combo>=2?'show':''}">🔥 ${cur.combo}연속 정답!</div>
+    <div class="question-card">
+      <div class="q-label">문제 ${cur.qIndex+1} / ${cur.shuffled.length}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="choices">
+        ${q.choices.map((c,i)=>`
+          <button class="choice" data-i="${i}" onclick="answer(${i})">
+            <span class="ch-key">${['가','나','다','라'][i]}</span><span>${c}</span>
+          </button>`).join('')}
+      </div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">다음 ▶</button>
+    </div>`;
+}
+function answer(i){
+  const cur=state.current;
+  const q=cur.shuffled[cur.qIndex];
+  const fb=$('#feedback');
+  document.querySelectorAll('.choice').forEach(b=>{
+    b.disabled=true;
+    const k=+b.dataset.i;
+    if(k===q.answer) b.classList.add('correct');
+    else if(k===i) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  if(i===q.answer){
+    cur.combo++;
+    const bonus=Math.min((cur.combo-1)*2,8);
+    const gained=10+bonus;
+    state.score+=gained; updateScore();
+    fb.className='feedback good show';
+    fb.innerHTML=`<div class="fb-title">🎉 정답! +${gained}점${bonus?` (콤보 보너스 +${bonus})`:''}</div>${q.why}`;
+  }else{
+    cur.combo=0; cur.mistakes++; cur.hearts--;
+    fb.className='feedback bad show';
+    fb.innerHTML=`<div class="fb-title">😅 아쉬워요! 정답은 「${q.choices[q.answer]}」</div>${q.why}`;
+    document.querySelector('.hearts').textContent='❤️'.repeat(cur.hearts)+'🤍'.repeat(3-cur.hearts);
+    if(cur.hearts<=0){ setTimeout(()=>failEra(), 1600); return; }
+  }
+  $('#btn-next').classList.add('show');
+  $('#btn-next').textContent = cur.qIndex===cur.shuffled.length-1 ? '결과 보기 🏁' : '다음 ▶';
+}
+
+/* ================= 결과 ================= */
+function finishEra(){
+  const cur=state.current; const era=ERAS[cur.eraId];
+  const stars = cur.mistakes===0?3 : cur.mistakes===1?2 : 1;
+  const prev = state.cleared[era.id]||0;
+  state.cleared[era.id]=Math.max(prev,stars);
+  const newCard = !state.cards[era.id];
+  state.cards[era.id]=true;
+  const allClear = ERAS.every(e=>state.cleared[e.id]);
+  const msgs={3:'완벽해요! 한 문제도 틀리지 않은 진짜 역사 박사!',2:'훌륭해요! 거의 다 맞혔어요. 별 셋에 도전해 볼까요?',1:'관문 통과! 다시 도전하면 별을 더 모을 수 있어요.'};
+  $('#result-screen').innerHTML=`
+    <div class="result-card">
+      <div class="big-icon">${stars===3?'🏆':'🎊'}</div>
+      <h2>${era.name} 정복!</h2>
+      <div class="result-stars">${'⭐'.repeat(stars)}<span class="off">${'⭐'.repeat(3-stars)}</span></div>
+      <div class="result-msg">${msgs[stars]}</div>
+      ${newCard?`
+      <div class="card-earned">
+        <div class="card-top">★ 역사 영웅 카드 획득 ★</div>
+        <div class="card-face">${era.card.face}</div>
+        <div class="card-name">${era.card.name}</div>
+        <div class="card-desc">${era.card.desc}</div>
+      </div>`:''}
+      <div class="result-actions">
+        ${stars<3?`<button class="btn-ghost" onclick="startEra(${era.id})">다시 도전 🔁</button>`:''}
+        <button class="btn-primary" style="margin-top:0;font-size:16px;padding:13px 30px;"
+          onclick="${allClear?'showFinal()':'goMap()'}">${allClear?'인증서 받기 🎓':'지도로 가기 🗺️'}</button>
+      </div>
+    </div>`;
+  show('#result-screen');
+}
+function failEra(){
+  const era=ERAS[state.current.eraId];
+  $('#result-screen').innerHTML=`
+    <div class="result-card">
+      <div class="big-icon">💪</div>
+      <h2>아깝다!</h2>
+      <div class="result-msg" style="margin-top:8px;">하트를 모두 잃었어요.<br>하지만 진짜 탐험가는 포기하지 않는 법!<br>설명을 잘 읽었다면 이번엔 분명히 통과할 수 있어요.</div>
+      <div class="result-actions">
+        <button class="btn-ghost" onclick="goMap()">지도로</button>
+        <button class="btn-primary" style="margin-top:0;font-size:16px;padding:13px 30px;" onclick="startEra(${era.id})">다시 도전 🔥</button>
+      </div>
+    </div>`;
+  show('#result-screen');
+}
+
+/* ================= 최종 인증서 ================= */
+function showFinal(){
+  const totalStars=Object.values(state.cleared).reduce((a,b)=>a+b,0);
+  const d=new Date();
+  $('#final-screen').innerHTML=`
+    <div class="cert">
+      <div class="cert-seal">역사왕<br>인증</div>
+      <h2>역사왕 인증서</h2>
+      <div class="cert-sub">KOREAN HISTORY MASTER</div>
+      <p>위 탐험가는 고조선부터 현대까지<br><b>8개 시대의 관문</b>을 모두 정복하고<br>한국사 대모험을 완주하였기에<br>이 증서를 수여합니다.</p>
+      <div class="cert-stats">
+        <div class="stat"><div class="stat-num">${state.score}</div><div class="stat-label">총 점수</div></div>
+        <div class="stat"><div class="stat-num">${totalStars}/24</div><div class="stat-label">획득한 별</div></div>
+        <div class="stat"><div class="stat-num">8/8</div><div class="stat-label">영웅 카드</div></div>
+      </div>
+      <div class="cert-date">${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 · 시간 여행 본부</div>
+    </div>
+    <div class="result-actions">
+      <button class="btn-ghost" onclick="openDex()">카드 도감 📚</button>
+      <button class="btn-primary" style="margin-top:0;font-size:16px;padding:13px 30px;" onclick="goMap()">별 셋 모으러 가기 ⭐</button>
+    </div>`;
+  show('#final-screen');
+}
+
+/* ================= 도감 ================= */
+function openDex(){
+  const g=$('#dex-grid'); g.innerHTML='';
+  ERAS.forEach(era=>{
+    const owned=!!state.cards[era.id];
+    g.innerHTML+=`
+      <div class="mini-card ${owned?'':'locked'}">
+        <div class="mc-face">${owned?era.card.face:'❓'}</div>
+        <div class="mc-name">${owned?era.card.name:'???'}</div>
+        <div class="mc-era">${era.name}</div>
+      </div>`;
+  });
+  $('#dex-modal').classList.add('open');
+}
+function closeDex(){ $('#dex-modal').classList.remove('open'); }
+function confirmExit(){
+  toast('진행 중인 퀴즈는 저장되지 않아요!');
+  setTimeout(()=>goMap(), 250);
+}
+</script>
+</body>
+</html>
